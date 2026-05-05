@@ -1,0 +1,19 @@
+{
+  "slug": "maple-and-crumb-toronto",
+  "name": "Maple & Crumb Bakehouse",
+  "category": "bakery",
+  "address": "412 Roncesvalles Avenue, Toronto, ON M6R 2N2",
+  "phone": "+1 (416) 555-0188",
+  "locality": "Toronto",
+  "hours": {
+    "weekday_text": [
+      "Monday: Closed",
+      "Tuesday: Closed",
+      "Wednesday: 7:00 AM – 3:00 PM",
+      "Thursday: 7:00 AM – 3:00 PM",
+      "Friday: 7:00 AM – 3:00 PM",
+      "Saturday: 7:00 AM – 3:00 PM",
+      "Sunday: 8:00 AM – 2:00 PM"
+    ]
+  }
+}

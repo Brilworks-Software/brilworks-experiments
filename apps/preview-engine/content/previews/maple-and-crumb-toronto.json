@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "business": {
+    "slug": "maple-and-crumb-toronto",
+    "name": "Maple & Crumb Bakehouse",
+    "category": "bakery",
+    "address": "412 Roncesvalles Avenue, Toronto, ON M6R 2N2",
+    "phone": "+1 (416) 555-0188",
+    "locality": "Toronto",
+    "hours": {
+      "weekday_text": [
+        "Monday: Closed",
+        "Tuesday: Closed",
+        "Wednesday: 7:00 AM – 3:00 PM",
+        "Thursday: 7:00 AM – 3:00 PM",
+        "Friday: 7:00 AM – 3:00 PM",
+        "Saturday: 7:00 AM – 3:00 PM",
+        "Sunday: 8:00 AM – 2:00 PM"
+      ]
+    }
+  },
+  "hero": {
+    "url": "https://images.unsplash.com/photo-1568254183919-78a4f43a2877?w=1600&q=80&auto=format&fit=crop",
+    "alt": "Fresh-baked bread on a wooden counter",
+    "photographer": "Jude Infantini",
+    "photographerUrl": "https://unsplash.com/@infantini",
+    "photoUrl": "https://unsplash.com/photos/PwbxAEAUmEM"
+  },
+  "generated": {
+    "tagline": "A small Roncesvalles bakehouse with a 5 a.m. start",
+    "neighborhood": "Roncesvalles, Toronto",
+    "aboutP1": "Maple & Crumb is a five-table bakery on Roncesvalles, with a long wooden counter and a stone oven in the back. The day begins at five with the first sourdough out by seven. By ten the case is full, and by mid-afternoon there is not much croissant left to talk about.",
+    "aboutP2": "The menu changes with the season — pumpkin in October, butter tarts in February — but the country sourdough and the cardamom knot are always there. Saturday mornings are a small line out the door. Come on a Wednesday for a quieter case and a slower coffee.",
+    "signatureDishes": [
+      {
+        "name": "Country Sourdough",
+        "line": "A 36-hour cold-fermented loaf, dark crust, open crumb, baked daily"
+      },
+      {
+        "name": "Cardamom Knot",
+        "line": "Laminated dough, cardamom paste, pearl sugar — out of the oven by 9 a.m."
+      },
+      {
+        "name": "Butter Tart",
+        "line": "Flaky pastry, dark corn syrup, sea salt — Ontario as it should be"
+      }
+    ],
+    "draftedAt": "2026-05-05T11:30:00.000Z",
+    "source": "agent-written"
+  }
+}

@@ -26,14 +26,16 @@ Health check: `curl http://localhost:3000/api/healthz` → `{ "ok": true, ... }`
 
 ```bash
 pnpm gen:preview \
-  --slug sangam-thali-surat \
-  --fixture apps/preview-engine/lib/fixtures/restaurants/sangam-thali-surat.json
+  --slug larkspur-cafe-brooklyn \
+  --fixture apps/preview-engine/lib/fixtures/restaurants/larkspur-cafe-brooklyn.json
 ```
 
 Writes `apps/preview-engine/content/previews/<slug>.json`, which the static
-route at `/r/<slug>` reads at build time. With `ANTHROPIC_API_KEY` unset (or
-`--dry-run`), the CLI uses deterministic stub copy so CI/builds work without a
-key. Set the key locally to generate real Claude Haiku 4.5 copy.
+route at `/r/<slug>` reads at build time. The CLI scaffolds placeholder copy
+clearly marked `DRAFT —`; the agent (Claude Code, in a Paperclip heartbeat)
+rewrites the `tagline` / `neighborhood` / `aboutP1` / `aboutP2` /
+`signatureDishes` fields in-place following the spec in
+`apps/preview-engine/lib/generator/restaurant.ts`. No Anthropic SDK call.
 
 ## Quality gates
 

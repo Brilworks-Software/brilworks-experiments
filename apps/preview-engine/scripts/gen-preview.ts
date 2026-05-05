@@ -2,8 +2,8 @@
 // CLI: scaffold a static preview JSON for a single business slug.
 //
 // Usage:
-//   pnpm gen:preview --slug sangam-thali-surat \
-//                    --fixture apps/preview-engine/lib/fixtures/restaurants/sangam-thali-surat.json
+//   pnpm gen:preview --slug larkspur-cafe-brooklyn \
+//                    --fixture apps/preview-engine/lib/fixtures/restaurants/larkspur-cafe-brooklyn.json
 //
 // Optional flags:
 //   --out <path>      write to a custom path instead of content/previews/<slug>.json
@@ -16,8 +16,9 @@
 //   - Picks the category-keyed Unsplash hero (no Places photos — R3).
 //   - Writes a draft preview JSON with placeholder copy clearly marked
 //     "DRAFT — …". The agent (Claude Code) running the heartbeat then
-//     rewrites the tagline/blurb1/blurb2 fields in-place following the
-//     prompt in lib/generator/restaurant.ts. No Anthropic SDK call.
+//     rewrites the tagline/neighborhood/aboutP1/aboutP2/signatureDishes
+//     fields in-place following the prompt in
+//     lib/generator/restaurant.ts. No Anthropic SDK call.
 //
 // Exit codes:
 //   0 success, 1 usage error, 2 fixture validation error.
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
   process.stdout.write(`Scaffold written: ${written}\n`);
   process.stdout.write(`Preview path: /r/${business.slug}\n`);
   process.stdout.write(
-    `Next: rewrite tagline/blurb1/blurb2 in that file (style spec in lib/generator/restaurant.ts) and set "source": "agent-written".\n`,
+    `Next: rewrite tagline/neighborhood/aboutP1/aboutP2/signatureDishes in that file (style spec in lib/generator/restaurant.ts) and set "source": "agent-written".\n`,
   );
 }
 

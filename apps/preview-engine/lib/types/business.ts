@@ -19,6 +19,6 @@ export type Business = {
   photos?: string[];
   /** Two-letter locale, defaults to "en". Reserved for future localised copy. */
   locale?: string;
-  /** Free-text city name surfaced in the prompt, e.g. "Surat", "Vadodara". */
+  /** Free-text city name surfaced in the prompt, e.g. "Brooklyn", "London", "Toronto". */
   locality?: string;
 };

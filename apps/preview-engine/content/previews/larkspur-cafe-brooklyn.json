@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "business": {
+    "slug": "larkspur-cafe-brooklyn",
+    "name": "Larkspur Coffee & Toast",
+    "category": "cafe",
+    "address": "88 Bedford Avenue, Brooklyn, NY 11211",
+    "phone": "+1 (718) 555-0144",
+    "locality": "Brooklyn",
+    "hours": {
+      "weekday_text": [
+        "Monday: 7:00 AM – 5:00 PM",
+        "Tuesday: 7:00 AM – 5:00 PM",
+        "Wednesday: 7:00 AM – 5:00 PM",
+        "Thursday: 7:00 AM – 5:00 PM",
+        "Friday: 7:00 AM – 6:00 PM",
+        "Saturday: 8:00 AM – 6:00 PM",
+        "Sunday: 8:00 AM – 4:00 PM"
+      ]
+    }
+  },
+  "hero": {
+    "url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1600&q=80&auto=format&fit=crop",
+    "alt": "Cafe table with latte",
+    "photographer": "Toa Heftiba",
+    "photographerUrl": "https://unsplash.com/@heftiba",
+    "photoUrl": "https://unsplash.com/photos/FV3GConVSss"
+  },
+  "generated": {
+    "tagline": "A small Williamsburg coffee bar with toast and time",
+    "neighborhood": "Williamsburg, Brooklyn",
+    "aboutP1": "Larkspur sits on a quiet corner of Bedford, with afternoon light through the front window and a counter that fits four. Mornings are quick — laptops, espresso, the line out the door before nine. After eleven the room slows down and people stay.",
+    "aboutP2": "The menu stays narrow on purpose: a few good toasts, a few good drinks, and a small case of pastries from a friend in Greenpoint. Service is unhurried once the rush has passed. Stop in mid-week, take a small table by the window, and stay for a while.",
+    "signatureDishes": [
+      {
+        "name": "Cardamom Bun",
+        "line": "A long, slow-rolled morning bun with cardamom sugar and citrus zest"
+      },
+      {
+        "name": "Hot Honey Toast",
+        "line": "Country bread, fresh ricotta, hot honey, sea salt — eaten standing if it is busy"
+      },
+      {
+        "name": "Single-Origin Drip",
+        "line": "Three rotating Brooklyn-roasted beans, brewed one cup at a time"
+      }
+    ],
+    "draftedAt": "2026-05-05T11:30:00.000Z",
+    "source": "agent-written"
+  }
+}

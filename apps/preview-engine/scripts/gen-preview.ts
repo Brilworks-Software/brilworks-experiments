@@ -1,27 +1,37 @@
 #!/usr/bin/env -S tsx
-// CLI: generate a static preview JSON for a single business slug.
+// CLI: scaffold a static preview JSON for a single business slug.
 //
 // Usage:
 //   pnpm gen:preview --slug sangam-thali-surat \
 //                    --fixture apps/preview-engine/lib/fixtures/restaurants/sangam-thali-surat.json
 //
 // Optional flags:
-//   --dry-run       use the deterministic stub copy even if ANTHROPIC_API_KEY is set
-//   --out <path>    write to a custom path instead of content/previews/<slug>.json
+//   --out <path>      write to a custom path instead of content/previews/<slug>.json
+//   --print-prompt    print the agent-facing prompt to stderr (useful when
+//                     piping into an editor session) instead of just writing
+//                     the scaffold JSON.
+//
+// What this does:
+//   - Validates the fixture against the Business shape.
+//   - Picks the category-keyed Unsplash hero (no Places photos — R3).
+//   - Writes a draft preview JSON with placeholder copy clearly marked
+//     "DRAFT — …". The agent (Claude Code) running the heartbeat then
+//     rewrites the tagline/blurb1/blurb2 fields in-place following the
+//     prompt in lib/generator/restaurant.ts. No Anthropic SDK call.
 //
 // Exit codes:
-//   0 success, 1 usage error, 2 fixture validation error, 3 generator error.
+//   0 success, 1 usage error, 2 fixture validation error.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
 import type { Business } from "../lib/types/business";
-import { generateRestaurantCopy } from "../lib/generator/restaurant";
+import { buildRestaurantPrompt, scaffoldDraftCopy } from "../lib/generator/restaurant";
 import { heroForCategory } from "../lib/hero/unsplash";
 import { writePreview, type PreviewRecord } from "../lib/content/store";
 
-type Args = { slug?: string; fixture?: string; dryRun?: boolean; out?: string };
+type Args = { slug?: string; fixture?: string; out?: string; printPrompt?: boolean };
 
 function parseArgs(argv: string[]): Args {
   const out: Args = {};
@@ -34,11 +44,11 @@ function parseArgs(argv: string[]): Args {
       case "--fixture":
         out.fixture = argv[++i];
         break;
-      case "--dry-run":
-        out.dryRun = true;
-        break;
       case "--out":
         out.out = argv[++i];
+        break;
+      case "--print-prompt":
+        out.printPrompt = true;
         break;
       default:
         throw new Error(`Unknown argument: ${a}`);
@@ -49,7 +59,7 @@ function parseArgs(argv: string[]): Args {
 
 function usage(): never {
   process.stderr.write(
-    "Usage: pnpm gen:preview --slug <slug> --fixture <path> [--dry-run] [--out <path>]\n",
+    "Usage: pnpm gen:preview --slug <slug> --fixture <path> [--out <path>] [--print-prompt]\n",
   );
   process.exit(1);
 }
@@ -99,19 +109,11 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  let generated;
-  try {
-    generated = await generateRestaurantCopy(business, { dryRun: args.dryRun });
-  } catch (err) {
-    process.stderr.write(`Generator failed: ${(err as Error).message}\n`);
-    process.exit(3);
-  }
-
   const record: PreviewRecord = {
     schemaVersion: 1,
     business,
     hero: heroForCategory(business.category),
-    generated,
+    generated: scaffoldDraftCopy(business),
   };
 
   let written: string;
@@ -124,12 +126,22 @@ async function main(): Promise<void> {
     written = await writePreview(record);
   }
 
-  const mode = generated.isStub ? "stub copy (set ANTHROPIC_API_KEY for Haiku)" : `model ${generated.modelId}`;
-  process.stdout.write(`Wrote ${written}\nGenerated using: ${mode}\n`);
+  if (args.printPrompt) {
+    const { system, user } = buildRestaurantPrompt(business);
+    process.stderr.write("\n--- system ---\n");
+    process.stderr.write(system + "\n");
+    process.stderr.write("\n--- user ---\n");
+    process.stderr.write(user + "\n\n");
+  }
+
+  process.stdout.write(`Scaffold written: ${written}\n`);
   process.stdout.write(`Preview path: /r/${business.slug}\n`);
+  process.stdout.write(
+    `Next: rewrite tagline/blurb1/blurb2 in that file (style spec in lib/generator/restaurant.ts) and set "source": "agent-written".\n`,
+  );
 }
 
 main().catch((err) => {
   process.stderr.write(`Unhandled error: ${(err as Error).stack ?? String(err)}\n`);
-  process.exit(3);
+  process.exit(1);
 });

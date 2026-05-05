@@ -8,7 +8,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import type { Business } from "../types/business";
-import type { GeneratedPreview } from "../generator/restaurant";
+import type { DraftPreview } from "../generator/restaurant";
 import type { HeroPhoto } from "../hero/unsplash";
 
 const PREVIEW_SCHEMA_VERSION = 1;
@@ -17,7 +17,7 @@ export type PreviewRecord = {
   schemaVersion: typeof PREVIEW_SCHEMA_VERSION;
   business: Business;
   hero: HeroPhoto;
-  generated: GeneratedPreview;
+  generated: DraftPreview;
 };
 
 // Both `next build` (cwd = apps/preview-engine) and the CLI (cwd = repo root,

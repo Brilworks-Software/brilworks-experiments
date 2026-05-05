@@ -1,21 +1,19 @@
-// Restaurant copy generator for the v0.0 preview pages.
+// Restaurant copy spec + draft scaffold for v0.0 preview pages.
 //
-// - Pure prompt builder (`buildRestaurantPrompt`) — snapshot-tested.
-// - Async generator (`generateRestaurantCopy`) — calls Claude Haiku 4.5 with a
-//   cached system prompt, parses a JSON response. Falls back to a deterministic
-//   stub when ANTHROPIC_API_KEY is missing or `dryRun: true` is passed, so the
-//   build pipeline works without a key. Real outreach copy (BRI-182 D4)
-//   requires a key.
+// v0.0 deliberately has no programmatic LLM call. `pnpm gen:preview` is
+// always run from a Paperclip heartbeat — the founding-engineer agent is the
+// "model" — so we scaffold a placeholder JSON, the agent edits the file in
+// the same heartbeat, and the page renders the result. No SDK, no API key,
+// no billing line.
 //
-// Per the global Claude API skill: latest + cheapest sufficient model for v0.0
-// is Haiku 4.5 (claude-haiku-4-5-20251001). System prompt is marked
-// `cache_control: ephemeral` so subsequent generations within the 5-minute TTL
-// reuse the cached prefix.
+// `buildRestaurantPrompt` is kept as the editable spec the agent follows. The
+// snapshot test pins copy drift, and if we ever automate generation in v0.1
+// the prompt is ready to drop into an SDK call.
+//
+// Bumped from earlier v0.0 draft after CEO review of BRI-181: "why we need
+// anthropic key cant we use claude code?"
 
 import type { Business } from "../types/business";
-
-export const HAIKU_MODEL_ID = "claude-haiku-4-5-20251001";
-export const STUB_MODEL_ID = "draft-stub";
 
 export type RestaurantCopy = {
   /** One-line tagline, ~6–10 words. Headline above the fold. */
@@ -26,14 +24,18 @@ export type RestaurantCopy = {
   blurb2: string;
 };
 
-export type GeneratedPreview = RestaurantCopy & {
-  modelId: string;
-  generatedAt: string;
-  /** True when the stub copy was used because no API key was available. */
-  isStub: boolean;
+export type DraftPreview = RestaurantCopy & {
+  /** ISO timestamp the scaffold was emitted. */
+  draftedAt: string;
+  /**
+   * "scaffold" until an agent has rewritten the copy; "agent-written" once
+   * a human-or-agent pass has filled in real copy. The page treats both
+   * the same way — this field is for tooling and review only.
+   */
+  source: "scaffold" | "agent-written";
 };
 
-const SYSTEM_PROMPT = `You write short, warm, conversion-oriented website copy for small Indian restaurants in tier-2 cities (Surat, Vadodara, Ahmedabad).
+export const SYSTEM_PROMPT = `You write short, warm, conversion-oriented website copy for small Indian restaurants in tier-2 cities (Surat, Vadodara, Ahmedabad).
 
 Style rules:
 - Plain English, grade-8 reading level, no purple prose.
@@ -49,32 +51,17 @@ Output format: respond with a single JSON object, no Markdown fence, with exactl
 - blurb1: 2 to 3 sentences, 40 to 70 words.
 - blurb2: 2 to 3 sentences, 40 to 70 words, ends with a low-pressure invitation to visit.`;
 
-/** Pure: builds the message payload sent to Anthropic. Snapshot-tested. */
+/**
+ * Pure: builds the prompt the agent (or a future SDK call) reads to write
+ * copy. Snapshot-tested so style-rule edits are intentional.
+ */
 export function buildRestaurantPrompt(business: Business): {
-  model: string;
-  max_tokens: number;
-  temperature: number;
-  system: Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>;
-  messages: Array<{ role: "user"; content: string }>;
+  system: string;
+  user: string;
 } {
-  const userPayload = formatBusinessForPrompt(business);
   return {
-    model: HAIKU_MODEL_ID,
-    max_tokens: 600,
-    temperature: 0.4,
-    system: [
-      {
-        type: "text",
-        text: SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: userPayload,
-      },
-    ],
+    system: SYSTEM_PROMPT,
+    user: formatBusinessForPrompt(business),
   };
 }
 
@@ -96,66 +83,30 @@ function formatBusinessForPrompt(b: Business): string {
   return lines.join("\n");
 }
 
-export type GenerateOptions = {
-  /** Force the stub even if ANTHROPIC_API_KEY is set. */
-  dryRun?: boolean;
-  /** Override the API key (mostly for tests; defaults to env). */
-  apiKey?: string;
+export type ScaffoldOptions = {
   /** Injection seam for tests. */
   now?: () => Date;
 };
 
-export async function generateRestaurantCopy(
+/**
+ * Build a placeholder copy block. The agent rewrites these strings before
+ * the preview goes out — the page will render the scaffold as-is if it
+ * doesn't, which is intentionally obvious so a forgotten rewrite is caught
+ * in review.
+ */
+export function scaffoldDraftCopy(
   business: Business,
-  opts: GenerateOptions = {},
-): Promise<GeneratedPreview> {
+  opts: ScaffoldOptions = {},
+): DraftPreview {
   const now = (opts.now ?? (() => new Date()))();
-  const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
-  if (opts.dryRun || !apiKey) {
-    return { ...stubCopy(business), modelId: STUB_MODEL_ID, generatedAt: now.toISOString(), isStub: true };
-  }
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey });
-  const req = buildRestaurantPrompt(business);
-  const res = await client.messages.create(req);
-  const copy = parseRestaurantResponse(res);
-  return { ...copy, modelId: HAIKU_MODEL_ID, generatedAt: now.toISOString(), isStub: false };
-}
-
-/** Extract the JSON copy from a Messages API response. Throws on malformed output. */
-export function parseRestaurantResponse(res: { content: Array<{ type: string; text?: string }> }): RestaurantCopy {
-  const text = res.content.find((b) => b.type === "text")?.text;
-  if (!text) throw new Error("Anthropic response had no text block");
-  // Strip a stray code fence if the model added one despite the instruction.
-  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch (err) {
-    throw new Error(`Anthropic response was not valid JSON: ${(err as Error).message}\n---\n${text}`);
-  }
-  return assertRestaurantCopy(parsed);
-}
-
-function assertRestaurantCopy(value: unknown): RestaurantCopy {
-  if (!value || typeof value !== "object") throw new Error("Generator output was not an object");
-  const v = value as Record<string, unknown>;
-  for (const k of ["tagline", "blurb1", "blurb2"] as const) {
-    if (typeof v[k] !== "string" || !(v[k] as string).trim()) {
-      throw new Error(`Generator output missing string field: ${k}`);
-    }
-  }
-  return { tagline: v.tagline as string, blurb1: v.blurb1 as string, blurb2: v.blurb2 as string };
-}
-
-/** Deterministic placeholder copy, used when no API key is available. */
-export function stubCopy(business: Business): RestaurantCopy {
   const where = business.locality ? ` in ${business.locality}` : "";
   const what = humanCategory(business.category);
   return {
-    tagline: `${business.name} — ${what}${where}`,
-    blurb1: `${business.name} is a neighbourhood ${what}${where}. The room is unfussy and the regulars know the staff by name. This is a draft preview — real copy is generated by Claude Haiku 4.5 once an ANTHROPIC_API_KEY is wired up.`,
-    blurb2: `Hours and address are pulled from the business's own listing, so what you see here is what you would find walking up to the door. If the rest of this page looks close to right, the next step is a short conversation about turning it into a live site.`,
+    tagline: `DRAFT — ${business.name} (${what}${where})`,
+    blurb1: `DRAFT scaffold for ${business.name}. Rewrite this paragraph following the style spec in lib/generator/restaurant.ts (SYSTEM_PROMPT). Two to three sentences, 40–70 words, evoking the room and the food.`,
+    blurb2: `DRAFT scaffold continued. Rewrite this paragraph as the second blurb — 2–3 sentences, 40–70 words, ending with a low-pressure invitation to visit. Do not invent prices, owner names, or awards.`,
+    draftedAt: now.toISOString(),
+    source: "scaffold",
   };
 }
 

@@ -22,6 +22,19 @@ pnpm dev                # runs preview-engine on :3000
 
 Health check: `curl http://localhost:3000/api/healthz` → `{ "ok": true, ... }`.
 
+## Generating a restaurant preview (BRI-181)
+
+```bash
+pnpm gen:preview \
+  --slug sangam-thali-surat \
+  --fixture apps/preview-engine/lib/fixtures/restaurants/sangam-thali-surat.json
+```
+
+Writes `apps/preview-engine/content/previews/<slug>.json`, which the static
+route at `/r/<slug>` reads at build time. With `ANTHROPIC_API_KEY` unset (or
+`--dry-run`), the CLI uses deterministic stub copy so CI/builds work without a
+key. Set the key locally to generate real Claude Haiku 4.5 copy.
+
 ## Quality gates
 
 ```bash

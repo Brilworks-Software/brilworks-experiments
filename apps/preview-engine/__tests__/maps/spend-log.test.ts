@@ -1,49 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
-import { SupabaseSpendLog } from "../../lib/maps/spend-log";
+import { PgSpendLog, type PgQueryFn } from "../../lib/maps/spend-log";
 
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-}
-
-type FetchArgs = [RequestInfo | URL, RequestInit | undefined];
-
-describe("SupabaseSpendLog", () => {
-  it("sums cost_usd from PostgREST select", async () => {
-    const fetcher = vi.fn<typeof fetch>(async () =>
-      jsonResponse([{ cost_usd: "0.020" }, { cost_usd: 0.032 }, { cost_usd: 0.020 }]),
-    );
-
-    const log = new SupabaseSpendLog({
-      url: "https://abc.supabase.co",
-      serviceRoleKey: "service-key",
-      fetcher: fetcher as unknown as typeof fetch,
-    });
+describe("PgSpendLog", () => {
+  it("totalSpentUsd selects coalesced sum and coerces to number", async () => {
+    const query = vi.fn<PgQueryFn>(async () => [{ total: "0.072" }]);
+    const log = new PgSpendLog(query);
 
     const total = await log.totalSpentUsd();
     expect(total).toBeCloseTo(0.072);
 
-    const call = fetcher.mock.calls.at(0) as FetchArgs | undefined;
-    expect(call).toBeDefined();
-    const [url, init] = call!;
-    expect(String(url)).toBe(
-      "https://abc.supabase.co/rest/v1/places_spend_log?select=cost_usd",
-    );
-    const headers = (init?.headers ?? {}) as Record<string, string>;
-    expect(headers.apikey).toBe("service-key");
-    expect(headers.Authorization).toBe("Bearer service-key");
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0]!;
+    expect(sql).toMatch(/sum\(cost_usd\)/);
+    expect(sql).toMatch(/from places_spend_log/);
+    expect(params).toEqual([]);
   });
 
-  it("posts an insert with snake_case columns", async () => {
-    const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 201 }));
-    const log = new SupabaseSpendLog({
-      url: "https://abc.supabase.co/",
-      serviceRoleKey: "service-key",
-      fetcher: fetcher as unknown as typeof fetch,
-    });
+  it("totalSpentUsd returns 0 when the table is empty", async () => {
+    const query = vi.fn<PgQueryFn>(async () => [{ total: 0 }]);
+    const log = new PgSpendLog(query);
+    expect(await log.totalSpentUsd()).toBe(0);
+  });
+
+  it("record inserts snake_case columns in positional order", async () => {
+    const query = vi.fn<PgQueryFn>(async () => []);
+    const log = new PgSpendLog(query);
 
     await log.record({
       query: "Sankalp",
@@ -54,37 +35,68 @@ describe("SupabaseSpendLog", () => {
       placeId: "ChIJtest",
     });
 
-    const call = fetcher.mock.calls.at(0) as FetchArgs | undefined;
-    expect(call).toBeDefined();
-    const [url, init] = call!;
-    expect(String(url)).toBe("https://abc.supabase.co/rest/v1/places_spend_log");
-    expect(init?.method).toBe("POST");
-    const body = JSON.parse(String(init?.body));
-    expect(body).toEqual({
-      query: "Sankalp",
-      locality: "Surat",
-      call_kind: "place_details",
-      cost_usd: 0.02,
-      succeeded: true,
-      place_id: "ChIJtest",
-      error_code: null,
-      error_message: null,
-    });
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0]!;
+    expect(sql).toMatch(/insert into places_spend_log/);
+    expect(sql).toMatch(
+      /\(query, locality, call_kind, cost_usd, succeeded, place_id, error_code, error_message\)/,
+    );
+    expect(sql).toMatch(/\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8/);
+    expect(params).toEqual([
+      "Sankalp",
+      "Surat",
+      "place_details",
+      0.02,
+      true,
+      "ChIJtest",
+      null,
+      null,
+    ]);
   });
 
-  it("throws on non-2xx PostgREST responses", async () => {
-    const fetcher = vi.fn<typeof fetch>(async () =>
-      new Response("permission denied", {
-        status: 403,
-        headers: { "Content-Type": "text/plain" },
-      }),
-    );
-    const log = new SupabaseSpendLog({
-      url: "https://abc.supabase.co",
-      serviceRoleKey: "service-key",
-      fetcher: fetcher as unknown as typeof fetch,
+  it("record sets optional fields to null when omitted", async () => {
+    const query = vi.fn<PgQueryFn>(async () => []);
+    const log = new PgSpendLog(query);
+
+    await log.record({
+      query: "q",
+      locality: "Surat",
+      callKind: "search_text",
+      costUsd: 0.032,
+      succeeded: false,
+      errorCode: "429",
+      errorMessage: "rate limited",
     });
 
-    await expect(log.totalSpentUsd()).rejects.toThrow(/spend log read failed/);
+    const params = query.mock.calls[0]![1]!;
+    expect(params[5]).toBeNull(); // place_id
+    expect(params[6]).toBe("429"); // error_code
+    expect(params[7]).toBe("rate limited"); // error_message
+  });
+
+  it("propagates driver errors out of totalSpentUsd", async () => {
+    const query = vi.fn<PgQueryFn>(async () => {
+      throw new Error("permission denied for places_spend_log");
+    });
+    const log = new PgSpendLog(query);
+
+    await expect(log.totalSpentUsd()).rejects.toThrow(/permission denied/);
+  });
+
+  it("propagates driver errors out of record", async () => {
+    const query = vi.fn<PgQueryFn>(async () => {
+      throw new Error("connection terminated");
+    });
+    const log = new PgSpendLog(query);
+
+    await expect(
+      log.record({
+        query: "q",
+        locality: "Surat",
+        callKind: "search_text",
+        costUsd: 0.032,
+        succeeded: true,
+      }),
+    ).rejects.toThrow(/connection terminated/);
   });
 });

@@ -3,18 +3,18 @@
  *
  *   PLACES_LIVE=1 \
  *   GOOGLE_PLACES_API_KEY=... \
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+ *   DATABASE_URL=postgres://... \
  *   pnpm --filter preview-engine exec tsx scripts/smoke-places.ts
  *
  * Hits the live Places API for 3 known Surat restaurants and asserts that:
  *   - lookupBusiness() returns the expected struct shape.
- *   - One spend_log row per call lands in Supabase.
+ *   - One spend_log row per call lands in Postgres (Neon, per ADR-0001 amendment).
  *
  * Real cost: 3 lookups × ~$0.052 ≈ $0.16 against the $20 cap.
  */
 
 import { lookupBusiness } from "../lib/maps/places";
-import { SupabaseSpendLog } from "../lib/maps/spend-log";
+import { pgSpendLogFromDatabaseUrl } from "../lib/maps/spend-log";
 
 const TARGETS: Array<{ query: string; locality: string }> = [
   { query: "Surati Farsan Mart", locality: "Surat" },
@@ -39,13 +39,9 @@ async function main(): Promise<void> {
   }
 
   const apiKey = requireEnv("GOOGLE_PLACES_API_KEY");
-  const supabaseUrl = requireEnv("SUPABASE_URL");
-  const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const databaseUrl = requireEnv("DATABASE_URL");
 
-  const spendLog = new SupabaseSpendLog({
-    url: supabaseUrl,
-    serviceRoleKey: supabaseKey,
-  });
+  const spendLog = pgSpendLogFromDatabaseUrl(databaseUrl);
 
   const before = await spendLog.totalSpentUsd();
   console.log(`Spend before: $${before.toFixed(4)}`);
@@ -65,7 +61,9 @@ async function main(): Promise<void> {
   }
 
   const after = await spendLog.totalSpentUsd();
-  console.log(`\nSpend after: $${after.toFixed(4)} (delta $${(after - before).toFixed(4)})`);
+  console.log(
+    `\nSpend after: $${after.toFixed(4)} (delta $${(after - before).toFixed(4)})`,
+  );
 }
 
 main().catch((error: unknown) => {

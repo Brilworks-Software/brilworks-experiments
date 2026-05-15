@@ -1,0 +1,19 @@
+{
+  "slug": "the-elder-pheasant-london",
+  "name": "The Elder Pheasant",
+  "category": "restaurant",
+  "address": "23 Lamb's Conduit Street, Bloomsbury, London WC1N 3NJ",
+  "phone": "+44 20 7946 0314",
+  "locality": "London",
+  "hours": {
+    "weekday_text": [
+      "Monday: Closed",
+      "Tuesday: 12:00 PM – 3:00 PM, 6:00 PM – 10:00 PM",
+      "Wednesday: 12:00 PM – 3:00 PM, 6:00 PM – 10:00 PM",
+      "Thursday: 12:00 PM – 3:00 PM, 6:00 PM – 10:00 PM",
+      "Friday: 12:00 PM – 3:00 PM, 6:00 PM – 11:00 PM",
+      "Saturday: 12:00 PM – 11:00 PM",
+      "Sunday: 12:00 PM – 4:00 PM"
+    ]
+  }
+}

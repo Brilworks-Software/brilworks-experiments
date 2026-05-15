@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "dev": "pnpm --filter preview-engine dev"
+    "dev": "pnpm --filter preview-engine dev",
+    "gen:preview": "pnpm --filter preview-engine gen:preview"
   },
   "devDependencies": {
     "typescript": "5.6.3"

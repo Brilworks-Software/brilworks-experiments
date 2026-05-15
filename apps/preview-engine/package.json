@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "gen:preview": "tsx scripts/gen-preview.ts",
     "smoke:places": "tsx scripts/smoke-places.ts",
     "db:migrate": "tsx scripts/db-migrate.ts"
   },

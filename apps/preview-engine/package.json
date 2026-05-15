@@ -9,9 +9,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "gen:preview": "tsx scripts/gen-preview.ts",
-    "smoke:places": "tsx scripts/smoke-places.ts"
+    "smoke:places": "tsx scripts/smoke-places.ts",
+    "db:migrate": "tsx scripts/db-migrate.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "0.10.4",
     "next": "15.0.7",
     "react": "19.0.0",
     "react-dom": "19.0.0"
